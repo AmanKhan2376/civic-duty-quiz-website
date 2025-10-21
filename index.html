@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Civic Duty Quiz</title>
+
+    <!-- Link CSS File -->
+    <link rel="stylesheet" href="styles.css">
+
+</head>
+
+<body>
+    <div class="container">
+        <!-- HOME PAGE -->
+        <div class="home-page" id="homePage">
+            <h1>Civic Duty Quiz</h1>
+            <p>Test your knowledge about civic responsibilities and community engagement. Learn what it means to be an
+                active and responsible citizen.</p>
+            <button class="start-btn" onclick="startQuiz()">Start Quiz</button>
+        </div>
+
+        <!-- QUIZ PAGE -->
+        <div class="quiz-page" id="quizPage">
+            <!-- Progress bar -->
+            <div class="progress-container">
+                <div class="progress-text">
+                    Question <span id="currentQuestion">1</span> of <span id="totalQuestions">5</span>
+                </div>
+                <div class="progress-bar">
+                    <div class="progress-fill" id="progressFill"></div>
+                </div>
+            </div>
+
+            <!-- Question section -->
+            <div class="question-section">
+                <div class="question-number">Question</div>
+                <div class="question-text" id="questionText"></div>
+            </div>
+
+            <!-- Options -->
+            <div class="options-container" id="optionsContainer"></div>
+
+            <!-- Navigation buttons -->
+            <div class="button-group">
+                <button class="btn btn-secondary" id="prevBtn" onclick="previousQuestion()" disabled>Previous</button>
+                <button class="btn btn-primary" id="nextBtn" onclick="nextQuestion()" disabled>Next</button>
+            </div>
+        </div>
+
+        <!-- RESULTS PAGE -->
+        <div class="results-page" id="resultsPage">
+            <div class="score-circle">
+                <div class="score-text" id="scoreDisplay">0/5</div>
+            </div>
+            <h2 id="resultTitle">Great Job!</h2>
+            <p class="results-message" id="resultMessage">You have demonstrated a good understanding of civic duties.
+            </p>
+            <button class="restart-btn" onclick="restartQuiz()">Restart Quiz</button>
+        </div>
+    </div>
+
+    <!-- Link JavaScript file -->
+    <script src="script.js"></script>
+
+</body>
+
+</html>
