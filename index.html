@@ -2,68 +2,67 @@
 <html lang="en">
 
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
     <title>Civic Duty Quiz</title>
-
-    <!-- Link CSS File -->
-    <link rel="stylesheet" href="styles.css">
-
+    <link rel="stylesheet" href="styles.css" />
 </head>
 
-<body>
+<body class="light-mode">
     <div class="container">
         <!-- HOME PAGE -->
         <div class="home-page" id="homePage">
             <h1>Civic Duty Quiz</h1>
-            <p>Test your knowledge about civic responsibilities and community engagement. Learn what it means to be an
-                active and responsible citizen.</p>
-            <button class="start-btn" onclick="startQuiz()">Start Quiz</button>
+            <p>
+                Test your knowledge about civic responsibilities and community engagement.
+                Learn what it means to be an active and responsible citizen.
+            </p>
+            <button class="start-btn" id="startBtn">Start Quiz</button>
         </div>
 
         <!-- QUIZ PAGE -->
-        <div class="quiz-page" id="quizPage">
-            <!-- Progress bar -->
+        <div class="quiz-page" id="quizPage" aria-hidden="true">
             <div class="progress-container">
                 <div class="progress-text">
-                    Question <span id="currentQuestion">1</span> of <span id="totalQuestions">5</span>
+                    Question <span id="currentQuestion">1</span> of <span id="totalQuestions">0</span>
                 </div>
-                <div class="progress-bar">
-                    <div class="progress-fill" id="progressFill"></div>
+                <div class="progress-bar" aria-hidden="true">
+                    <div class="progress-fill" id="progressFill" style="width:0%"></div>
                 </div>
             </div>
 
-            <!-- Question section -->
-            <div class="question-section">
-                <div class="question-number">Question</div>
+            <div class="question-section" role="region" aria-labelledby="questionLabel">
+                <div class="question-number" id="questionLabel">Question</div>
                 <div class="question-text" id="questionText"></div>
             </div>
 
-            <!-- Options -->
-            <div class="options-container" id="optionsContainer"></div>
+            <div class="options-container" id="optionsContainer" role="list"></div>
 
-            <!-- Navigation buttons -->
             <div class="button-group">
-                <button class="btn btn-secondary" id="prevBtn" onclick="previousQuestion()" disabled>Previous</button>
-                <button class="btn btn-primary" id="nextBtn" onclick="nextQuestion()" disabled>Next</button>
+                <button class="btn btn-secondary" id="prevBtn" aria-label="Previous question" disabled>Previous</button>
+                <button class="btn btn-primary" id="nextBtn" aria-label="Next question" disabled>Next</button>
             </div>
         </div>
 
         <!-- RESULTS PAGE -->
-        <div class="results-page" id="resultsPage">
+        <div class="results-page" id="resultsPage" aria-hidden="true">
             <div class="score-circle">
-                <div class="score-text" id="scoreDisplay">0/5</div>
+                <div class="score-text" id="scoreDisplay">0/0</div>
             </div>
             <h2 id="resultTitle">Great Job!</h2>
-            <p class="results-message" id="resultMessage">You have demonstrated a good understanding of civic duties.
-            </p>
-            <button class="restart-btn" onclick="restartQuiz()">Restart Quiz</button>
+            <p class="results-message" id="resultMessage"></p>
+
+            <!-- Review Section (dynamically filled) -->
+            <div id="reviewWrapper"></div>
+
+            <div style="margin-top:20px; display:flex; gap:12px; justify-content:center;">
+                <button class="restart-btn" id="restartBtn">Restart Quiz</button>
+                <button class="btn btn-secondary" id="homeBtn">Back to Home</button>
+            </div>
         </div>
     </div>
 
-    <!-- Link JavaScript file -->
     <script src="script.js"></script>
-
 </body>
 
 </html>
