@@ -1,5 +1,7 @@
-// ===== QUIZ DATA =====
-// Array of 50 civic duty quiz questions related to India
+/* ========== SAMPLE QUIZ DATA ==========
+   Replace or expand this array with your real questions.
+   Each item: { question: string, options: [..], correct: index }
+*/
 const quizData = [
     {
         question: "What is the primary purpose of voting in India?",
@@ -483,119 +485,169 @@ const quizData = [
     }
 ];
 
-// Function to get 20 random questions from the quizData array
-function getRandomQuestions() {
-    const shuffled = [...quizData]; // Copy the original array
-    for (let i = shuffled.length - 1; i > 0; i--) {
-        const j = Math.floor(Math.random() * (i + 1));
-        [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]]; // Swap
-    }
-    return shuffled.slice(0, 20); // Take first 20
-}
+/* ========== CONFIG ========== */
+const DESIRED_QUESTIONS = 20; // will use min(DESIRED_QUESTIONS, quizData.length)
 
-// Variable to hold the questions for the current quiz attempt
+/* ======= STATE ======== */
 let currentQuizData = [];
-
-
-// ===== STATE VARIABLES =====
 let currentQuestionIndex = 0;
 let score = 0;
-let userAnswers = [];
+let userAnswers = []; // stores selected option index or undefined
 let answered = false;
 
-// ===== INITIALIZATION =====
-// Initialize the quiz by setting up the total questions count
-function initQuiz() {
-    document.getElementById('totalQuestions').textContent = 20;
+/* ======= CACHED DOM ======== */
+const homePage = document.getElementById('homePage');
+const quizPage = document.getElementById('quizPage');
+const resultsPage = document.getElementById('resultsPage');
+
+const startBtn = document.getElementById('startBtn');
+const prevBtn = document.getElementById('prevBtn');
+const nextBtn = document.getElementById('nextBtn');
+const restartBtn = document.getElementById('restartBtn');
+const homeBtn = document.getElementById('homeBtn');
+
+const questionText = document.getElementById('questionText');
+const currentQuestionEl = document.getElementById('currentQuestion');
+const totalQuestionsEl = document.getElementById('totalQuestions');
+const progressFill = document.getElementById('progressFill');
+const optionsContainer = document.getElementById('optionsContainer');
+
+const scoreDisplay = document.getElementById('scoreDisplay');
+const resultTitle = document.getElementById('resultTitle');
+const resultMessage = document.getElementById('resultMessage');
+const reviewWrapper = document.getElementById('reviewWrapper');
+
+/* ======= UTILITIES ======== */
+function shuffleArray(arr) {
+    // Fisher-Yates
+    const a = arr.slice();
+    for (let i = a.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [a[i], a[j]] = [a[j], a[i]];
+    }
+    return a;
 }
 
-// ===== QUIZ NAVIGATION =====
-// Start the quiz by showing the quiz page and loading the first question
-function startQuiz() {
-    // Pick 20 random questions
-    currentQuizData = getRandomQuestions();
+function getRandomQuestions() {
+    if (!Array.isArray(quizData) || quizData.length === 0) return [];
+    const shuffled = shuffleArray(quizData);
+    const count = Math.min(DESIRED_QUESTIONS, shuffled.length);
+    return shuffled.slice(0, count);
+}
 
-    // Reset state variables
+/* ======= INIT ======== */
+function initQuiz() {
+    totalQuestionsEl.textContent = DESIRED_QUESTIONS <= quizData.length ? DESIRED_QUESTIONS : quizData.length;
+}
+
+/* ======= START / LOAD ======== */
+function startQuiz() {
+    currentQuizData = getRandomQuestions();
+    if (!Array.isArray(currentQuizData) || currentQuizData.length === 0) {
+        alert('Quiz data missing — please provide questions.');
+        return;
+    }
+
     currentQuestionIndex = 0;
     score = 0;
-    userAnswers = [];
+    userAnswers = new Array(currentQuizData.length);
     answered = false;
 
-    document.getElementById('homePage').style.display = 'none';
-    document.getElementById('quizPage').classList.add('active');
+    // UI toggles
+    homePage.classList.remove('active');
+    homePage.style.display = 'none';
+    resultsPage.classList.remove('active');
+    resultsPage.style.display = 'none';
+
+    quizPage.classList.add('active');
+    quizPage.style.display = 'block';
+    totalQuestionsEl.textContent = currentQuizData.length;
 
     loadQuestion();
-    initQuiz();
+    updateButtonStates();
 }
 
-// Load the current question and display it with options
+/* ======= RENDER QUESTION ======== */
 function loadQuestion() {
-    const question = currentQuizData[currentQuestionIndex];
-    document.getElementById('questionText').textContent = question.question;
-    document.getElementById('currentQuestion').textContent = currentQuestionIndex + 1;
+    const q = currentQuizData[currentQuestionIndex];
+    if (!q) return;
 
-    // Update progress bar
+    questionText.textContent = q.question;
+    currentQuestionEl.textContent = currentQuestionIndex + 1;
+
+    // progress
     const progress = ((currentQuestionIndex + 1) / currentQuizData.length) * 100;
-    document.getElementById('progressFill').style.width = progress + '%';
+    progressFill.style.width = progress + '%';
 
-    // Render options
-    const optionsContainer = document.getElementById('optionsContainer');
+    // render options
     optionsContainer.innerHTML = '';
+    answered = userAnswers[currentQuestionIndex] !== undefined;
 
-    // Assume not answered initially
-    answered = false;
+    q.options.forEach((optText, idx) => {
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'option';
+        btn.setAttribute('role', 'listitem');
+        btn.setAttribute('aria-pressed', 'false');
+        btn.tabIndex = 0;
+        btn.innerHTML = `${idx + 1}. ${optText}`;
 
-    question.options.forEach((option, index) => {
-        const optionDiv = document.createElement('div');
-        optionDiv.className = 'option';
-        optionDiv.textContent = option;
-
-        // Check if this option was previously selected
-        if (userAnswers[currentQuestionIndex] === index) {
-            optionDiv.classList.add('selected');
-            answered = true; // <-- Mark answered true if already selected
+        // restore selection
+        if (userAnswers[currentQuestionIndex] === idx) {
+            btn.classList.add('selected');
+            btn.setAttribute('aria-pressed', 'true');
         }
 
-        // Add click event to select an option
-        optionDiv.onclick = () => selectOption(index, optionDiv);
-        optionsContainer.appendChild(optionDiv);
+        btn.addEventListener('click', () => {
+            selectOption(idx);
+        });
+
+        // allow keyboard selection when focused
+        btn.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                selectOption(idx);
+            }
+        });
+
+        optionsContainer.appendChild(btn);
     });
 
-    // Update button states
     updateButtonStates();
 }
 
-// Handle option selection
-function selectOption(index, element) {
-    // Remove previous selection
-    document.querySelectorAll('.option').forEach(opt => {
-        opt.classList.remove('selected', 'correct', 'incorrect');
+/* ======= SELECT OPTION ======== */
+function selectOption(optionIndex) {
+    // remove previous selection visual
+    document.querySelectorAll('.option').forEach((o, i) => {
+        o.classList.remove('selected', 'correct', 'incorrect');
+        o.setAttribute('aria-pressed', 'false');
     });
 
-    // Mark the selected option
-    element.classList.add('selected');
-    userAnswers[currentQuestionIndex] = index;
+    // mark new selection
+    const optionEls = optionsContainer.querySelectorAll('.option');
+    if (optionEls[optionIndex]) {
+        optionEls[optionIndex].classList.add('selected');
+        optionEls[optionIndex].setAttribute('aria-pressed', 'true');
+    }
+
+    userAnswers[currentQuestionIndex] = optionIndex;
     answered = true;
-
-    // Update button states
     updateButtonStates();
 }
 
-// Move to the next question
+/* ======= NAVIGATION ======== */
 function nextQuestion() {
-    if (answered) {
-        if (currentQuestionIndex < currentQuizData.length - 1) {
-            currentQuestionIndex++;
-            loadQuestion();
-        } else {
-            // Quiz completed, show results
-            calculateScore();
-            showResults();
-        }
+    if (!answered) return; // guard
+    if (currentQuestionIndex < currentQuizData.length - 1) {
+        currentQuestionIndex++;
+        loadQuestion();
+    } else {
+        calculateScore();
+        showResults();
     }
 }
 
-// Move to the previous question
 function previousQuestion() {
     if (currentQuestionIndex > 0) {
         currentQuestionIndex--;
@@ -603,80 +655,143 @@ function previousQuestion() {
     }
 }
 
-// Update the state of navigation buttons
 function updateButtonStates() {
-    const prevBtn = document.getElementById('prevBtn');
-    const nextBtn = document.getElementById('nextBtn');
-
-    // Enable/disable previous button
     prevBtn.disabled = currentQuestionIndex === 0;
-
-    // Enable/disable next button based on whether an answer is selected
     nextBtn.disabled = !answered;
-
-    // Change next button text on last question
-    if (currentQuestionIndex === currentQuizData.length - 1) {
-        nextBtn.textContent = 'Finish';
-    } else {
-        nextBtn.textContent = 'Next';
-    }
+    nextBtn.textContent = currentQuestionIndex === currentQuizData.length - 1 ? 'Finish' : 'Next';
 }
 
-// ===== SCORING & RESULTS =====
-// Calculate the final score
+/* ======= SCORING & RESULTS ======== */
 function calculateScore() {
     score = 0;
-    userAnswers.forEach((answer, index) => {
-        if (answer === currentQuizData[index].correct) {
-            score++;
-        }
+    userAnswers.forEach((ans, idx) => {
+        if (ans === currentQuizData[idx].correct) score++;
     });
 }
 
-// Display the results page with score and message
 function showResults() {
-    document.getElementById('quizPage').classList.remove('active');
-    document.getElementById('resultsPage').classList.add('active');
+    quizPage.classList.remove('active');
+    quizPage.style.display = 'none';
 
-    // Display score
-    document.getElementById('scoreDisplay').textContent = `${score}/${20}`;
+    resultsPage.classList.add('active');
+    resultsPage.style.display = 'block';
 
-    // Determine result message based on score
-    let title, message;
-    const percentage = (score / 20) * 100;
+    scoreDisplay.textContent = `${score}/${currentQuizData.length}`;
 
+    const percentage = (score / currentQuizData.length) * 100;
     if (percentage === 100) {
-        title = "Perfect Score! 🎉";
-        message = "Excellent! You have a comprehensive understanding of civic duties and responsibilities. You're a model citizen!";
+        resultTitle.textContent = "Perfect Score! 🎉";
+        resultMessage.textContent = "Excellent! You have a comprehensive understanding of civic duties.";
     } else if (percentage >= 80) {
-        title = "Excellent! 👏";
-        message = "Great job! You have a strong understanding of civic duties and community responsibilities.";
+        resultTitle.textContent = "Excellent! 👏";
+        resultMessage.textContent = "Strong understanding of civic duties and community responsibilities.";
     } else if (percentage >= 60) {
-        title = "Good Job! 👍";
-        message = "You have a solid understanding of civic duties. Keep learning more about community engagement and responsibilities.";
+        resultTitle.textContent = "Good Job! 👍";
+        resultMessage.textContent = "Solid understanding. Keep learning more about civic engagement.";
     } else if (percentage >= 40) {
-        title = "Not Bad! 📚";
-        message = "You have some understanding of civic duties. Consider learning more about voting, community service, and civic responsibilities.";
+        resultTitle.textContent = "Not Bad! 📚";
+        resultMessage.textContent = "Some understanding. Study civic duties and responsibilities further.";
     } else {
-        title = "Keep Learning! 💪";
-        message = "Don't worry! Civic education is important. Review the topics and try again to improve your understanding.";
+        resultTitle.textContent = "Keep Learning! 💪";
+        resultMessage.textContent = "Review civic education topics and try again to improve.";
     }
 
-    document.getElementById('resultTitle').textContent = title;
-    document.getElementById('resultMessage').textContent = message;
+    renderReview();
 }
 
-// ===== RESTART FUNCTIONALITY =====
-// Reset the quiz and return to home page
+/* Efficient review rendering using template join */
+function renderReview() {
+    // remove old content
+    reviewWrapper.innerHTML = '';
+
+    const container = document.createElement('div');
+    container.className = 'review-container';
+
+    const html = currentQuizData.map((q, i) => {
+        const userAns = userAnswers[i];
+        const correctIdx = q.correct;
+        const isCorrect = userAns === correctIdx;
+
+        const userText = userAns !== undefined ? escapeHtml(q.options[userAns]) : '<em>Not answered</em>';
+        const correctText = escapeHtml(q.options[correctIdx]);
+
+        return `
+      <div class="review-item ${isCorrect ? 'correct' : 'incorrect'}">
+        <div class="review-question">${i + 1}. ${escapeHtml(q.question)}</div>
+        <div class="review-answer">
+          ${isCorrect
+                ? `<strong>✅ Your answer:</strong> ${userText}`
+                : `<strong>❌ Your answer:</strong> ${userText}<br><strong>✔ Correct answer:</strong> ${correctText}`
+            }
+        </div>
+      </div>`;
+    }).join('');
+
+    container.innerHTML = html;
+    reviewWrapper.appendChild(container);
+}
+
+/* Basic HTML escaping to avoid injection if questions come from external source */
+function escapeHtml(str) {
+    if (typeof str !== 'string') return str;
+    return str.replace(/[&<>"']/g, (m) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[m]));
+}
+
+/* ======= RESTART / HOME ======== */
 function restartQuiz() {
     currentQuestionIndex = 0;
     score = 0;
     userAnswers = [];
     answered = false;
 
-    document.getElementById('resultsPage').classList.remove('active');
-    document.getElementById('homePage').style.display = 'block';
+    resultsPage.classList.remove('active');
+    resultsPage.style.display = 'none';
+
+    homePage.style.display = 'block';
+    homePage.classList.add('active');
 }
 
-// Initialize on page load
-window.addEventListener('DOMContentLoaded', initQuiz);
+function backToHome() {
+    // same as restart but keep page visible
+    restartQuiz();
+}
+
+/* ======= KEYBOARD SHORTCUTS ======== */
+document.addEventListener('keydown', (e) => {
+    // don't interfere with typing if focus is an input (none here but safe)
+    const tag = document.activeElement && document.activeElement.tagName;
+    if (tag === 'INPUT' || tag === 'TEXTAREA') return;
+
+    if (e.key === 'ArrowRight') {
+        // next if available
+        if (!nextBtn.disabled) nextQuestion();
+    } else if (e.key === 'ArrowLeft') {
+        if (!prevBtn.disabled) previousQuestion();
+    } else if (e.key === 'Enter') {
+        // if on options container focus, try next
+        if (!nextBtn.disabled) nextQuestion();
+    } else if (/^[1-9]$/.test(e.key)) {
+        // number key to select option 1..9
+        const num = parseInt(e.key, 10);
+        const optEls = optionsContainer.querySelectorAll('.option');
+        if (num >= 1 && num <= optEls.length) {
+            optEls[num - 1].focus();
+            optEls[num - 1].click();
+        }
+    }
+});
+
+/* ======= EVENT BINDINGS ======== */
+startBtn.addEventListener('click', startQuiz);
+prevBtn.addEventListener('click', previousQuestion);
+nextBtn.addEventListener('click', nextQuestion);
+restartBtn.addEventListener('click', restartQuiz);
+homeBtn.addEventListener('click', backToHome);
+
+/* init on DOM ready */
+window.addEventListener('DOMContentLoaded', () => {
+    initQuiz();
+    // show home by default
+    homePage.classList.add('active');
+    homePage.style.display = 'block';
+});
